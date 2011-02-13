@@ -71,21 +71,21 @@ public class FieldInitAgentDelegate
 	private final static String TARGET_FIELD_ELEMENT = TARGET_CLASS_ELEMENT + "/target-field"; 
 	private final static String INITIALISER_ELEMENT = TARGET_FIELD_ELEMENT + "/initialiser"; 
 	private final static String ARGUMENT_ELEMENT = INITIALISER_ELEMENT + "/argument";
-	private final static Map<String, Class<?>> PRIMITIVE_TYPES;
+	private final static Map<String, String> PRIMITIVE_TYPES;
 	
 	static {
 		@SuppressWarnings("serial")
-		Map<String, Class<?>> primitiveTypes =
-			new HashMap<String, Class<?>>()
+		Map<String, String> primitiveTypes =
+			new HashMap<String, String>()
 			{{
-				put("short", short.class);
-				put("int", int.class);
-				put("long", long.class);
-				put("boolean", boolean.class);
-				put("char", char.class);
-				put("byte", byte.class);
-				put("float", float.class);
-				put("double", double.class);
+				put("short", "S");
+				put("int", "I");
+				put("long", "J");
+				put("boolean", "Z");
+				put("char", "C");
+				put("byte", "B");
+				put("float", "F");
+				put("double", "D");
 			}};
 		PRIMITIVE_TYPES = Collections.unmodifiableMap(primitiveTypes);
 	}
@@ -239,38 +239,37 @@ public class FieldInitAgentDelegate
 		Node typeNode = attributes.getNamedItem("type");
 		Node classNode = attributes.getNamedItem("class");
 		Node methodNode = attributes.getNamedItem("method");
-		if(typeNode == null) {
-			if(attributes.getLength() != 2)
-				throw
-					new ConfigurationError(
-						"Only single 'class' and 'method' attributes can be defined for "
-							+ INITIALISER_ELEMENT + " element."
-					);
-			if(classNode == null)
-				throw
-					new ConfigurationError(
-						"'method' attribute for " + INITIALISER_ELEMENT + " element requires aslo 'class' attribute."
-					);
-			if(methodNode == null)
-				throw
-					new ConfigurationError(
-						"'class' attribute for " + INITIALISER_ELEMENT + " element requires aslo 'method' attribute."
-					);
-		}
-		else
+		if(typeNode == null)
+			throw
+				new ConfigurationError(
+					"'type' attribute for " + INITIALISER_ELEMENT + " element is required."
+				);
+		if((classNode == null && methodNode != null) || (classNode != null && methodNode == null))
+			throw
+				new ConfigurationError(
+					"Both, 'class' and 'method' attributes for " + INITIALISER_ELEMENT + " element are required."
+				);
+		if(classNode == null && methodNode == null)
+		{
 			if(attributes.getLength() != 1)
 				throw
 					new ConfigurationError(
 						"'type' attribute for " + INITIALISER_ELEMENT + " element can exists only alone."
 					);
-		if(typeNode != null)
 			return
 				new Initialiser(
 					typeNode.getTextContent(),
 					unmarshallConstructorArguments(xpath, initialiserElement)
 				);
-		else
-			return new Initialiser(classNode.getTextContent(), methodNode.getTextContent());
+		}
+		else {
+			if(attributes.getLength() > 3)
+				throw
+					new ConfigurationError(
+						"Too many attributes for " + INITIALISER_ELEMENT + " element."
+					);
+			return new Initialiser(typeNode.getTextContent(), classNode.getTextContent(), methodNode.getTextContent());
+		}
 	}
 	
 	
@@ -364,6 +363,7 @@ public class FieldInitAgentDelegate
 		private final String _name;
 		private boolean _isStatic;
 		private final Initialiser _initialiser;
+		private String _targetTypeDescriptor;
 
 		public TargetField(String name, Initialiser initialiser)
 		{
@@ -390,6 +390,16 @@ public class FieldInitAgentDelegate
 		{
 			return _initialiser;
 		}
+
+		public void setTargetTypeDescriptor(String targetTypeDescriptor)
+		{
+			_targetTypeDescriptor = targetTypeDescriptor;
+		}
+
+		public String getTargetTypeDescriptor()
+		{
+			return _targetTypeDescriptor;
+		}
 	}
 	
 	public static class Initialiser
@@ -400,6 +410,8 @@ public class FieldInitAgentDelegate
 		private final String _className;
 		private final Pattern _classNamePattern;
 		private final String _methodName;
+		private final String _descriptor;
+		private final boolean _isPrimitive;
 		
 		public Initialiser(String typeName, List<ConstructorArgument> constructorArguments)
 		{
@@ -409,16 +421,35 @@ public class FieldInitAgentDelegate
 			_className = null;
 			_classNamePattern = null;
 			_methodName = null;
+			String descriptor = "(";
+			boolean isPrimitive = false;
+			for(ConstructorArgument ca : constructorArguments) {
+				String argumentTypeName = ca.getType() == null ? _typeName : ca.getType();
+				String type = PRIMITIVE_TYPES.get(argumentTypeName);
+				if(type == null)
+					type ="L" + argumentTypeName + ";";
+				else
+					isPrimitive = true;
+				descriptor += type;
+			}
+			descriptor += ")V";
+			_descriptor = descriptor;
+			_isPrimitive = isPrimitive;
 		}
 
-		public Initialiser(String className, String methodName)
+		public Initialiser(String typeName, String className, String methodName)
 		{
-			_typeName = null;
-			_typeNamePattern = null;
+			_typeName = typeName.replace('.', '/');
+			_typeNamePattern = Pattern.compile("^" + _typeName + "$");
 			_constructorArguments = null;
 			_className = className.replace('.', '/');
 			_classNamePattern = Pattern.compile("^" + _className + "$");
 			_methodName = methodName;
+			String type = PRIMITIVE_TYPES.get(_typeName);
+			if(type == null)
+				type ="L" + _typeName + ";";
+			_descriptor = "()" + type;
+			_isPrimitive = false;
 		}
 
 		public String getTypeName()
@@ -449,6 +480,16 @@ public class FieldInitAgentDelegate
 		public String getMethodName()
 		{
 			return _methodName;
+		}
+
+		public String getDescriptor()
+		{
+			return _descriptor;
+		}
+		
+		public boolean isPrimitive()
+		{
+			return _isPrimitive;
 		}
 	}
 	

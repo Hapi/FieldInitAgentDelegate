@@ -45,6 +45,7 @@ public class ConfigurationTest
 		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_i", tf.getName());
 		assertEquals("int", ini.getTypeName());
+		assertEquals("(I)V", ini.getDescriptor());
 		assertNull(ca.getType());
 		assertEquals("12", ca.getValue());
 	}
@@ -72,6 +73,7 @@ public class ConfigurationTest
 		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_date", tf.getName());
 		assertEquals("java/util/Date", ini.getTypeName());
+		assertEquals("(Ljava/lang/String;)V", ini.getDescriptor());
 		assertEquals("java/lang/String", ca.getType());
 		assertEquals("Sat, 12 Aug 1995 13:30:00 GMT", ca.getValue());
 	}
@@ -99,6 +101,7 @@ public class ConfigurationTest
 		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_date", tf.getName());
 		assertEquals("java/util/Date", ini.getTypeName());
+		assertEquals("(III)V", ini.getDescriptor());
 		assertEquals("int", ca[0].getType());
 		assertEquals("109", ca[0].getValue());
 		assertEquals("int", ca[1].getType());
@@ -115,7 +118,11 @@ public class ConfigurationTest
 				"com.hapiware.test.Poro",
 				createTargetField(
 					"_address",
-					createFactoryInitialiser("com.hapiware.test.Factory", "createAddress")
+					createFactoryInitialiser(
+						"com.hapiware.test.Address",
+						"com.hapiware.test.Factory",
+						"createAddress"
+					)
 				)
 			);
 		custom.appendChild(item);
@@ -124,9 +131,10 @@ public class ConfigurationTest
 		Initialiser ini = tf.getInitialiser();
 		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_address", tf.getName());
-		assertNull(ini.getTypeName());
+		assertEquals("com/hapiware/test/Address", ini.getTypeName());
 		assertEquals("com/hapiware/test/Factory", ini.getClassName());
 		assertEquals("createAddress", ini.getMethodName());
+		assertEquals("()Lcom/hapiware/test/Address;", ini.getDescriptor());
 	}
 
 	
@@ -161,9 +169,10 @@ public class ConfigurationTest
 		return createTypeInitialiser(type, new String[] { argumentType }, new String[] { argumentValue });
 	}
 	
-	private Element createFactoryInitialiser(String className, String methodName)
+	private Element createFactoryInitialiser(String type, String className, String methodName)
 	{
 		Element initialiser = configDoc.createElement("initialiser");
+		initialiser.setAttribute("type", type);
 		initialiser.setAttribute("class", className);
 		initialiser.setAttribute("method", methodName);
 		return initialiser;
