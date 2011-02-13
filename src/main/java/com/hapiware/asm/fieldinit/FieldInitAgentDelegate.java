@@ -3,7 +3,9 @@ package com.hapiware.asm.fieldinit;
 import java.lang.instrument.Instrumentation;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.xml.xpath.XPath;
@@ -12,9 +14,9 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
 
 
 
@@ -64,11 +66,29 @@ import org.w3c.dom.Text;
  */
 public class FieldInitAgentDelegate
 {
-	private final static String CONFIGURATION_ELEMENT = "configuration"; 
+	private final static String CONFIGURATION_ELEMENT = "configuration/custom"; 
 	private final static String TARGET_CLASS_ELEMENT = CONFIGURATION_ELEMENT + "/target-class"; 
 	private final static String TARGET_FIELD_ELEMENT = TARGET_CLASS_ELEMENT + "/target-field"; 
 	private final static String INITIALISER_ELEMENT = TARGET_FIELD_ELEMENT + "/initialiser"; 
 	private final static String ARGUMENT_ELEMENT = INITIALISER_ELEMENT + "/argument";
+	private final static Map<String, Class<?>> PRIMITIVE_TYPES;
+	
+	static {
+		@SuppressWarnings("serial")
+		Map<String, Class<?>> primitiveTypes =
+			new HashMap<String, Class<?>>()
+			{{
+				put("short", short.class);
+				put("int", int.class);
+				put("long", long.class);
+				put("boolean", boolean.class);
+				put("char", char.class);
+				put("byte", byte.class);
+				put("float", float.class);
+				put("double", double.class);
+			}};
+		PRIMITIVE_TYPES = Collections.unmodifiableMap(primitiveTypes);
+	}
 	
 	
 	/**
@@ -155,8 +175,6 @@ public class FieldInitAgentDelegate
 				);
 			}
 			
-			String date = (String)xpath.evaluate("./date", configElement, XPathConstants.STRING);
-			
 			return targetClasses.toArray(new TargetClass[0]);
 		}
 		catch(XPathExpressionException e) {
@@ -195,30 +213,129 @@ public class FieldInitAgentDelegate
 					);
 			
 			targetFields.add(
-				new TargetField(targetFieldName, false, false, unmarshallInitialisers(xpath, targetFieldElement))
+				new TargetField(targetFieldName, unmarshallInitialiser(xpath, targetFieldElement))
 			);
 		}
 		return targetFields;
 	}
 	
 	
-	private static List<Initialiser> unmarshallInitialisers(XPath xpath, Element targetFieldElement)
+	private static Initialiser unmarshallInitialiser(XPath xpath, Element targetFieldElement)
+		throws
+			XPathExpressionException
 	{
-		// TODO: Parse config!!!
-		return null;
+		NodeList initialiserEntries =
+			(NodeList)xpath.evaluate(
+				"./initialiser",
+				targetFieldElement,
+				XPathConstants.NODESET
+			);
+		if(initialiserEntries.getLength() < 1)
+			throw new ConfigurationError("A required " + INITIALISER_ELEMENT + " is missing.");
+		if(initialiserEntries.getLength() > 1)
+			throw new ConfigurationError("Only one " + INITIALISER_ELEMENT + " is allowed.");
+		Element initialiserElement = (Element)initialiserEntries.item(0);
+		NamedNodeMap attributes = initialiserElement.getAttributes();
+		Node typeNode = attributes.getNamedItem("type");
+		Node classNode = attributes.getNamedItem("class");
+		Node methodNode = attributes.getNamedItem("method");
+		if(typeNode == null) {
+			if(attributes.getLength() != 2)
+				throw
+					new ConfigurationError(
+						"Only single 'class' and 'method' attributes can be defined for "
+							+ INITIALISER_ELEMENT + " element."
+					);
+			if(classNode == null)
+				throw
+					new ConfigurationError(
+						"'method' attribute for " + INITIALISER_ELEMENT + " element requires aslo 'class' attribute."
+					);
+			if(methodNode == null)
+				throw
+					new ConfigurationError(
+						"'class' attribute for " + INITIALISER_ELEMENT + " element requires aslo 'method' attribute."
+					);
+		}
+		else
+			if(attributes.getLength() != 1)
+				throw
+					new ConfigurationError(
+						"'type' attribute for " + INITIALISER_ELEMENT + " element can exists only alone."
+					);
+		if(typeNode != null)
+			return
+				new Initialiser(
+					typeNode.getTextContent(),
+					unmarshallConstructorArguments(xpath, initialiserElement)
+				);
+		else
+			return new Initialiser(classNode.getTextContent(), methodNode.getTextContent());
+	}
+	
+	
+	private static List<ConstructorArgument> unmarshallConstructorArguments(XPath xpath, Element initialiserElement)
+		throws
+			XPathExpressionException
+	{
+		NodeList argumentEntries =
+			(NodeList)xpath.evaluate(
+				"./argument",
+				initialiserElement,
+				XPathConstants.NODESET
+			);
+		String initialiserType = initialiserElement.getAttribute("type");
+		final boolean primitiveInitialiser = PRIMITIVE_TYPES.containsKey(initialiserType);
+		if(primitiveInitialiser && argumentEntries.getLength() > 1)
+			throw
+				new ConfigurationError(
+					"For the primitive type '" + initialiserType 
+						+ "' only one "	+ ARGUMENT_ELEMENT + " element is allowed."
+				);
+		List<ConstructorArgument> arguments = new ArrayList<ConstructorArgument>();
+		for(int i = 0; i < argumentEntries.getLength(); i++) {
+			Element argumentElement = (Element)argumentEntries.item(i);
+			int numOfTypeAttributes = argumentElement.getAttributes().getLength();
+			if(!primitiveInitialiser && numOfTypeAttributes < 1)
+				throw
+					new ConfigurationError(
+						"A required 'type' attribute is missing from " + ARGUMENT_ELEMENT + " element."
+					);
+			if(numOfTypeAttributes > 1)
+				throw
+					new ConfigurationError(
+						"Only one 'type' attribute is allowed for " + ARGUMENT_ELEMENT + " element."
+					);
+			if(!primitiveInitialiser) {
+				String typeName = argumentElement.getAttribute("type");
+				if(typeName == null)
+					throw
+						new ConfigurationError(
+							"Only 'type' attribute is allowed for " + ARGUMENT_ELEMENT + " element."
+						);
+				arguments.add(
+					new ConstructorArgument(typeName, argumentElement.getTextContent())
+				);
+			}
+			else
+				arguments.add(
+					new ConstructorArgument(null, argumentElement.getTextContent())
+				);
+		}
+		return arguments;
 	}
 	
 	
 	public static class TargetClass
 	{
 		private final String _name;
-		private final List<TargetField> _targetFields;
+		private final TargetField[] _targetFields;
 		
 		
 		public TargetClass(String name, List<TargetField> targetFields)
 		{
 			_name = name;
-			_targetFields = Collections.unmodifiableList(targetFields);
+			_targetFields = targetFields.toArray(new TargetField[0]);
 		}
 
 
@@ -228,7 +345,7 @@ public class FieldInitAgentDelegate
 		}
 
 
-		public List<TargetField> getTargetFields()
+		public TargetField[] getTargetFields()
 		{
 			return _targetFields;
 		}
@@ -237,21 +354,13 @@ public class FieldInitAgentDelegate
 	public static class TargetField
 	{
 		private final String _name;
-		private final boolean _overrideNonNull;
-		private final boolean _isStatic;
-		private final List<Initialiser> _initialisers;
+		private boolean _isStatic;
+		private final Initialiser _initialiser;
 
-		public TargetField(
-			String name,
-			boolean overrideNonNull,
-			boolean isStatic,
-			List<Initialiser> initialisers
-		)
+		public TargetField(String name, Initialiser initialiser)
 		{
 			_name = name;
-			_overrideNonNull = overrideNonNull;
-			_isStatic = isStatic;
-			_initialisers = Collections.unmodifiableList(initialisers);
+			_initialiser = initialiser;
 		}
 
 		public String getName()
@@ -259,33 +368,33 @@ public class FieldInitAgentDelegate
 			return _name;
 		}
 
-		public boolean isOverrideNonNull()
-		{
-			return _overrideNonNull;
-		}
-
 		public boolean isStatic()
 		{
 			return _isStatic;
 		}
-
-		public List<Initialiser> getInitialisers()
+		
+		public void setStatic(boolean isStatic)
 		{
-			return _initialisers;
+			_isStatic = isStatic;
+		}
+
+		public Initialiser getInitialiser()
+		{
+			return _initialiser;
 		}
 	}
 	
 	public static class Initialiser
 	{
 		private final String _typeName;
-		private final List<ConstructorArgument> _constructorArguments;
+		private final ConstructorArgument[] _constructorArguments;
 		private final String _className;
 		private final String _methodName;
 		
 		public Initialiser(String typeName, List<ConstructorArgument> constructorArguments)
 		{
 			_typeName = typeName;
-			_constructorArguments = Collections.unmodifiableList(constructorArguments);
+			_constructorArguments = constructorArguments.toArray(new ConstructorArgument[0]);
 			_className = null;
 			_methodName = null;
 		}
@@ -303,7 +412,7 @@ public class FieldInitAgentDelegate
 			return _typeName;
 		}
 
-		public List<ConstructorArgument> getConstructorArguments()
+		public ConstructorArgument[] getConstructorArguments()
 		{
 			return _constructorArguments;
 		}
