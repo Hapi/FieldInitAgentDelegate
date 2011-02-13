@@ -42,7 +42,7 @@ public class ConfigurationTest
 		TargetField tf = tc.getTargetFields()[0];
 		Initialiser ini = tf.getInitialiser();
 		ConstructorArgument ca = ini.getConstructorArguments()[0];
-		assertEquals("com.hapiware.test.Poro", tc.getName());
+		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_i", tf.getName());
 		assertEquals("int", ini.getTypeName());
 		assertNull(ca.getType());
@@ -69,10 +69,10 @@ public class ConfigurationTest
 		TargetField tf = tc.getTargetFields()[0];
 		Initialiser ini = tf.getInitialiser();
 		ConstructorArgument ca = ini.getConstructorArguments()[0];
-		assertEquals("com.hapiware.test.Poro", tc.getName());
+		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_date", tf.getName());
-		assertEquals("java.util.Date", ini.getTypeName());
-		assertEquals("java.lang.String", ca.getType());
+		assertEquals("java/util/Date", ini.getTypeName());
+		assertEquals("java/lang/String", ca.getType());
 		assertEquals("Sat, 12 Aug 1995 13:30:00 GMT", ca.getValue());
 	}
 	
@@ -96,9 +96,9 @@ public class ConfigurationTest
 		TargetField tf = tc.getTargetFields()[0];
 		Initialiser ini = tf.getInitialiser();
 		ConstructorArgument[] ca = ini.getConstructorArguments();
-		assertEquals("com.hapiware.test.Poro", tc.getName());
+		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_date", tf.getName());
-		assertEquals("java.util.Date", ini.getTypeName());
+		assertEquals("java/util/Date", ini.getTypeName());
 		assertEquals("int", ca[0].getType());
 		assertEquals("109", ca[0].getValue());
 		assertEquals("int", ca[1].getType());
@@ -122,10 +122,10 @@ public class ConfigurationTest
 		TargetClass tc = ((TargetClass[])FieldInitAgentDelegate.unmarshall(custom))[0];
 		TargetField tf = tc.getTargetFields()[0];
 		Initialiser ini = tf.getInitialiser();
-		assertEquals("com.hapiware.test.Poro", tc.getName());
+		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_address", tf.getName());
 		assertNull(ini.getTypeName());
-		assertEquals("com.hapiware.test.Factory", ini.getClassName());
+		assertEquals("com/hapiware/test/Factory", ini.getClassName());
 		assertEquals("createAddress", ini.getMethodName());
 	}
 

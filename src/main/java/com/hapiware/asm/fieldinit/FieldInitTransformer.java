@@ -1,11 +1,10 @@
 package com.hapiware.asm.fieldinit;
 
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
+
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.regex.Pattern;
 
 import org.objectweb.asm.ClassAdapter;
@@ -15,8 +14,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 import com.hapiware.asm.fieldinit.FieldInitAgentDelegate.TargetClass;
-
-import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import com.hapiware.asm.fieldinit.FieldInitAgentDelegate.TargetField;
 
 
 /**
@@ -58,55 +56,58 @@ public class FieldInitTransformer
 		for(Pattern p : _includePatterns) {
 			if(p.matcher(className).matches()) 
 			{
-				try
-				{
-					ClassReader cr = new ClassReader(classFileBuffer);
-					ClassWriter cw = new ClassWriter(0);
-					cr.accept(
-						new ClassAdapter(cw)
+				for(final TargetClass tc : _targetClasses)
+					if(tc.getNamePattern().matcher(className).matches())
+					{
+						try
 						{
-							public FieldVisitor visitField(
-								int access,
-								String name,
-								String desc,
-								String signature,
-								Object value
-							)
-							{
-								FieldVisitor fv =
-									super.visitField(access, name, desc, signature, value);
-								// TODO: Find out static fields for later reference!!!
-								for(Pattern p : _loggerPatterns) {
-									if((access & ACC_STATIC) == ACC_STATIC && p.matcher(desc).matches())
-										loggerDescs.add(new LoggerDesc(name, desc));
-								}
-								return fv;
-							}
-							
-							public MethodVisitor visitMethod(
-								int access,
-								String name,
-								String desc,
-								String signature,
-								String[] exceptions
-							)
-							{
-								MethodVisitor mv =
-									super.visitMethod(access, name, desc, signature, exceptions);
-								if(name.equals("<clinit>") || name.equals("<init>"))
-									return new FieldInitAdapter(access, name, desc, mv);
-								else
-									return mv;
-							} 
-						},
-						0
-					);
-					return cw.toByteArray();
-				}
-				catch(Throwable e)
-				{
-					throw new Error("Instrumentation of a class " + className + " failed.", e);
-				}
+							ClassReader cr = new ClassReader(classFileBuffer);
+							ClassWriter cw = new ClassWriter(0);
+							cr.accept(
+								new ClassAdapter(cw)
+								{
+									public FieldVisitor visitField(
+										int access,
+										String name,
+										String desc,
+										String signature,
+										Object value
+									)
+									{
+										FieldVisitor fv =
+											super.visitField(access, name, desc, signature, value);
+										for(TargetField tf : tc.getTargetFields())
+											if((access & ACC_STATIC) == ACC_STATIC && tf.getName().equals(name))
+												tf.setStatic(true);
+										
+										return fv;
+									}
+									
+									public MethodVisitor visitMethod(
+										int access,
+										String name,
+										String desc,
+										String signature,
+										String[] exceptions
+									)
+									{
+										MethodVisitor mv =
+											super.visitMethod(access, name, desc, signature, exceptions);
+										if(name.equals("<clinit>") || name.equals("<init>"))
+											return new FieldInitAdapter(access, name, desc, mv);
+										else
+											return mv;
+									} 
+								},
+								0
+							);
+							return cw.toByteArray();
+						}
+						catch(Throwable e)
+						{
+							throw new Error("Instrumentation of a class " + className + " failed.", e);
+						}
+					}
 			}
 		}
 		return null;

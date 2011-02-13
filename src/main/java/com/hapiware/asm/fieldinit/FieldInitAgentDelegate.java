@@ -319,7 +319,7 @@ public class FieldInitAgentDelegate
 			}
 			else
 				arguments.add(
-					new ConstructorArgument(null, argumentElement.getTextContent())
+					new ConstructorArgument(argumentElement.getTextContent())
 				);
 		}
 		return arguments;
@@ -329,12 +329,14 @@ public class FieldInitAgentDelegate
 	public static class TargetClass
 	{
 		private final String _name;
+		private final Pattern _namePattern;
 		private final TargetField[] _targetFields;
 		
 		
 		public TargetClass(String name, List<TargetField> targetFields)
 		{
-			_name = name;
+			_name = name.replace('.', '/');
+			_namePattern = Pattern.compile("^" + _name + "$");
 			_targetFields = targetFields.toArray(new TargetField[0]);
 		}
 
@@ -342,6 +344,12 @@ public class FieldInitAgentDelegate
 		public String getName()
 		{
 			return _name;
+		}
+
+
+		public Pattern getNamePattern()
+		{
+			return _namePattern;
 		}
 
 
@@ -387,29 +395,40 @@ public class FieldInitAgentDelegate
 	public static class Initialiser
 	{
 		private final String _typeName;
+		private final Pattern _typeNamePattern;
 		private final ConstructorArgument[] _constructorArguments;
 		private final String _className;
+		private final Pattern _classNamePattern;
 		private final String _methodName;
 		
 		public Initialiser(String typeName, List<ConstructorArgument> constructorArguments)
 		{
-			_typeName = typeName;
+			_typeName = typeName.replace('.', '/');
+			_typeNamePattern = Pattern.compile("^" + _typeName + "$");
 			_constructorArguments = constructorArguments.toArray(new ConstructorArgument[0]);
 			_className = null;
+			_classNamePattern = null;
 			_methodName = null;
 		}
 
 		public Initialiser(String className, String methodName)
 		{
 			_typeName = null;
+			_typeNamePattern = null;
 			_constructorArguments = null;
-			_className = className;
+			_className = className.replace('.', '/');
+			_classNamePattern = Pattern.compile("^" + _className + "$");
 			_methodName = methodName;
 		}
 
 		public String getTypeName()
 		{
 			return _typeName;
+		}
+
+		public Pattern getTypeNamePattern()
+		{
+			return _typeNamePattern;
 		}
 
 		public ConstructorArgument[] getConstructorArguments()
@@ -422,6 +441,11 @@ public class FieldInitAgentDelegate
 			return _className;
 		}
 
+		public Pattern getClassNamePattern()
+		{
+			return _classNamePattern;
+		}
+
 		public String getMethodName()
 		{
 			return _methodName;
@@ -431,17 +455,31 @@ public class FieldInitAgentDelegate
 	public static class ConstructorArgument
 	{
 		private final String _type;
+		private final Pattern _typePattern;
 		private final String _value;
 		
 		public ConstructorArgument(String type, String value)
 		{
-			_type = type;
+			_type = type.replace('.', '/');
+			_typePattern = Pattern.compile("^" + _type + "$");
+			_value = value;
+		}
+
+		public ConstructorArgument(String value)
+		{
+			_type = null;
+			_typePattern = null;
 			_value = value;
 		}
 
 		public String getType()
 		{
 			return _type;
+		}
+
+		public Pattern getTypePattern()
+		{
+			return _typePattern;
 		}
 
 		public String getValue()
