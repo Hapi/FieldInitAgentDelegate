@@ -1,7 +1,6 @@
 package com.hapiware.asm.fieldinit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -46,8 +45,9 @@ public class ConfigurationTest
 		assertEquals("_i", tf.getName());
 		assertEquals("int", ini.getTypeName());
 		assertEquals("(I)V", ini.getDescriptor());
-		assertNull(ca.getType());
+		assertEquals("int", ca.getType());
 		assertEquals("12", ca.getValue());
+		assertEquals("12", ca.getArgument().toString());
 	}
 	
 	@Test
@@ -76,6 +76,7 @@ public class ConfigurationTest
 		assertEquals("(Ljava/lang/String;)V", ini.getDescriptor());
 		assertEquals("java/lang/String", ca.getType());
 		assertEquals("Sat, 12 Aug 1995 13:30:00 GMT", ca.getValue());
+		assertEquals("Sat, 12 Aug 1995 13:30:00 GMT", ca.getArgument().toString());
 	}
 	
 	@Test
@@ -104,10 +105,13 @@ public class ConfigurationTest
 		assertEquals("(III)V", ini.getDescriptor());
 		assertEquals("int", ca[0].getType());
 		assertEquals("109", ca[0].getValue());
+		assertEquals("109", ca[0].getArgument().toString());
 		assertEquals("int", ca[1].getType());
 		assertEquals("10", ca[1].getValue());
+		assertEquals("10", ca[1].getArgument().toString());
 		assertEquals("int", ca[2].getType());
 		assertEquals("19", ca[2].getValue());
+		assertEquals("19", ca[2].getArgument().toString());
 	}
 
 	@Test

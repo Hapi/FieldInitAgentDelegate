@@ -1,6 +1,8 @@
 package com.hapiware.asm.fieldinit;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ public class FieldInitAgentDelegate
 	private final static String INITIALISER_ELEMENT = TARGET_FIELD_ELEMENT + "/initialiser"; 
 	private final static String ARGUMENT_ELEMENT = INITIALISER_ELEMENT + "/argument";
 	private final static Map<String, String> PRIMITIVE_TYPES;
+	private final static Map<String, String> WRAPPER_TYPES;
 	
 	static {
 		@SuppressWarnings("serial")
@@ -88,6 +91,20 @@ public class FieldInitAgentDelegate
 				put("double", "D");
 			}};
 		PRIMITIVE_TYPES = Collections.unmodifiableMap(primitiveTypes);
+		@SuppressWarnings("serial")
+		Map<String, String> wrapperTypes =
+			new HashMap<String, String>()
+			{{
+				put("short", "java.lang.Short");
+				put("int", "java.lang.Integer");
+				put("long", "java.lang.Long");
+				put("boolean", "java.lang.Boolean");
+				put("char", "java.lang.Character");
+				put("byte", "java.lang.Byte");
+				put("float", "java.lang.Float");
+				put("double", "java.lang.Double");
+			}};
+		WRAPPER_TYPES = Collections.unmodifiableMap(wrapperTypes);
 	}
 	
 	
@@ -318,7 +335,7 @@ public class FieldInitAgentDelegate
 			}
 			else
 				arguments.add(
-					new ConstructorArgument(argumentElement.getTextContent())
+					new ConstructorArgument(initialiserType, argumentElement.getTextContent())
 				);
 		}
 		return arguments;
@@ -429,7 +446,7 @@ public class FieldInitAgentDelegate
 				if(type == null)
 					type ="L" + argumentTypeName + ";";
 				else
-					isPrimitive = true;
+					isPrimitive = constructorArguments.size() == 1;
 				descriptor += type;
 			}
 			descriptor += ")V";
@@ -498,19 +515,21 @@ public class FieldInitAgentDelegate
 		private final String _type;
 		private final Pattern _typePattern;
 		private final String _value;
+		private final Object _argument;
 		
 		public ConstructorArgument(String type, String value)
 		{
 			_type = type.replace('.', '/');
 			_typePattern = Pattern.compile("^" + _type + "$");
 			_value = value;
-		}
-
-		public ConstructorArgument(String value)
-		{
-			_type = null;
-			_typePattern = null;
-			_value = value;
+			Object argument = null;
+			try {
+				argument = create(type, value);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+			_argument = argument;
 		}
 
 		public String getType()
@@ -526,6 +545,27 @@ public class FieldInitAgentDelegate
 		public String getValue()
 		{
 			return _value;
+		}
+		
+		public Object getArgument()
+		{
+			return _argument;
+		}
+
+		private static Object create(String type, String value)
+			throws
+				ClassNotFoundException,
+				SecurityException,
+				NoSuchMethodException,
+				IllegalArgumentException,
+				InstantiationException,
+				IllegalAccessException,
+				InvocationTargetException
+		{
+			String wrapper = WRAPPER_TYPES.get(type);
+			Class<?> c = wrapper == null ? Class.forName(type) : Class.forName(wrapper);
+			Constructor<?> constructor = c.getConstructor(String.class);
+			return constructor.newInstance(value);
 		}
 	}
 	

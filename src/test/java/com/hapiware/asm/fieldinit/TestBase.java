@@ -7,7 +7,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-public class TestBase
+public abstract class TestBase
 {
 	protected Document configDoc;
 	protected Element custom;

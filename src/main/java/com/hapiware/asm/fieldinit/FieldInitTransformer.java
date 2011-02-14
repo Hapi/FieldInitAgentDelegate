@@ -62,7 +62,7 @@ public class FieldInitTransformer
 						try
 						{
 							ClassReader cr = new ClassReader(classFileBuffer);
-							ClassWriter cw = new ClassWriter(0);
+							ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 							cr.accept(
 								new ClassAdapter(cw)
 								{
@@ -77,9 +77,11 @@ public class FieldInitTransformer
 										FieldVisitor fv =
 											super.visitField(access, name, desc, signature, value);
 										for(TargetField tf : tc.getTargetFields()) {
-											if((access & ACC_STATIC) == ACC_STATIC && tf.getName().equals(name))
-												tf.setStatic(true);
-											tf.setTargetTypeDescriptor(desc);
+											if(tf.getName().equals(name)) {
+												if((access & ACC_STATIC) == ACC_STATIC)
+													tf.setStatic(true);
+												tf.setTargetTypeDescriptor(desc);
+											}
 										}
 										
 										return fv;
@@ -96,7 +98,15 @@ public class FieldInitTransformer
 										MethodVisitor mv =
 											super.visitMethod(access, name, desc, signature, exceptions);
 										if(name.equals("<clinit>") || name.equals("<init>"))
-											return new FieldInitAdapter(tc.getTargetFields(), access, name, desc, mv);
+											return
+												new FieldInitAdapter(
+													tc.getName(),
+													tc.getTargetFields(),
+													access,
+													name,
+													desc,
+													mv
+												);
 										else
 											return mv;
 									} 
