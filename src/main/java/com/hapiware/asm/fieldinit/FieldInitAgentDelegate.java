@@ -282,7 +282,7 @@ import org.w3c.dom.NodeList;
  * 			<b>{@code target-class}</b> is a main level element which defines the class to
  * 			be initialised
  * 			<ul>
- * 				<li><b>{@code type}</b> the class name (e.g. com.hapiware.asm.fieldinit.Container</li>
+ * 				<li><b>{@code type}</b> the class name (e.g. com.hapiware.asm.fieldinit.Container)</li>
  * 			</ul>
  * 		</li>
  * 		<li>
@@ -307,7 +307,7 @@ import org.w3c.dom.NodeList;
  * 			<ul>
  * 				<li>
  * 					<b>{@code type}</b> a primitive type or a class which is instantiated using
- * 					a constructor which takes a single string argument (e.g. int of java.lang.String)
+ * 					a constructor which takes a single string argument (e.g. int or java.lang.String)
  * 				</li>
  * 				<li><b>{@code cast-to}</b> optinal class to define a proper constructor</li>
  * 			</ul>
