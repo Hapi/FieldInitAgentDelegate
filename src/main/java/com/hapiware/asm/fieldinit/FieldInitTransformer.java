@@ -97,7 +97,7 @@ public class FieldInitTransformer
 									{
 										MethodVisitor mv =
 											super.visitMethod(access, name, desc, signature, exceptions);
-										if(name.equals("<clinit>") || name.equals("<init>"))
+										if(name.equals("<init>"))
 											return
 												new FieldInitAdapter(
 													tc.getName(),

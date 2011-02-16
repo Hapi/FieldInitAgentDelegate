@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<agent>
+    <delegate>com.hapiware.asm.fieldinit.FieldInitAgentDelegate</delegate>
+    <classpath>
+        <entry>${project.build.directory}/field-init-agent-delegate-1.0.0.jar</entry>
+        <entry>${user.home}/.m2/repository/asm/asm-all/3.3/asm-all-3.3.jar</entry>
+    </classpath>
+    <filter>
+    	<include>^com/hapiware/asm/fieldinit/.+</include>
+    </filter>
+    <configuration>
+    	<custom>
+	    	<target-class type="com.hapiware.asm.fieldinit.Container">
+	    		<target-field name="_date">
+	    			<initialiser type="java.util.Date">
+	    				<argument type="int">111</argument>
+	    				<argument type="int">2</argument>
+	    				<argument type="int">16</argument>
+	    			</initialiser>
+	    		</target-field>
+	
+	    		<target-field name="_date2">
+	    			<initialiser type="java.util.Date">
+	    				<argument type="java.lang.String">Sat, 12 Aug 1995 13:30:00 GMT</argument>
+	    			</initialiser>
+	    		</target-field>
+	
+	    		<target-field name="_i">
+	    			<initialiser type="int">
+	    				<argument>314</argument>
+	    			</initialiser>
+	    		</target-field>
+	
+	    		<target-field name="_address">
+	    			<initialiser type="com.hapiware.asm.fieldinit.Address">
+	    				<argument
+	    					type="java.lang.String"
+	    					cast-to="java.lang.Object"
+	    				>Street,12345,City</argument>
+	    			</initialiser>
+	    		</target-field>
+	
+	    		<target-field name="_address2">
+	    			<initialiser
+	    				type="com.hapiware.asm.fieldinit.Address"
+	    				factory-class="com.hapiware.asm.fieldinit.Factory"
+	    				method="createAddress"
+	    			/>
+	    		</target-field>
+	    	</target-class>
+	    </custom>
+    </configuration>
+</agent>

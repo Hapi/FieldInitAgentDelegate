@@ -30,7 +30,7 @@ public class FieldInitAdapter extends AdviceAdapter
 	{
 		for(TargetField tf : _targetFields) {
 			Initialiser ini = tf.getInitialiser();
-			boolean hasFactoryMethod = ini.getClassName() != null; 
+			boolean hasFactoryMethod = ini.getFactoryClassName() != null; 
 			mv.visitVarInsn(ALOAD, 0);
 
 			if(ini.isPrimitive()) {
@@ -39,7 +39,7 @@ public class FieldInitAdapter extends AdviceAdapter
 				if(hasFactoryMethod) {
 					mv.visitMethodInsn(
 						INVOKESTATIC,
-						ini.getClassName(),
+						ini.getFactoryClassName(),
 						ini.getMethodName(),
 						ini.getDescriptor()
 					);

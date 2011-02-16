@@ -136,7 +136,7 @@ public class ConfigurationTest
 		assertEquals("com/hapiware/test/Poro", tc.getName());
 		assertEquals("_address", tf.getName());
 		assertEquals("com/hapiware/test/Address", ini.getTypeName());
-		assertEquals("com/hapiware/test/Factory", ini.getClassName());
+		assertEquals("com/hapiware/test/Factory", ini.getFactoryClassName());
 		assertEquals("createAddress", ini.getMethodName());
 		assertEquals("()Lcom/hapiware/test/Address;", ini.getDescriptor());
 	}
@@ -177,7 +177,7 @@ public class ConfigurationTest
 	{
 		Element initialiser = configDoc.createElement("initialiser");
 		initialiser.setAttribute("type", type);
-		initialiser.setAttribute("class", className);
+		initialiser.setAttribute("factory-class", className);
 		initialiser.setAttribute("method", methodName);
 		return initialiser;
 	}
@@ -193,7 +193,7 @@ public class ConfigurationTest
 	private Element createTargetClass(String name, Element[] targetFields)
 	{
 		Element targetClass = configDoc.createElement("target-class");
-		targetClass.setAttribute("name", name);
+		targetClass.setAttribute("type", name);
 		for(Element targetField : targetFields)
 			targetClass.appendChild(targetField);
 		return targetClass;

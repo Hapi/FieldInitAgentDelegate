@@ -5,7 +5,12 @@
 	<artifactId>field-init-agent-delegate</artifactId>
 	<version>1.0.0</version>
 	<description>
-		'field-init-agent-delegate' can be used to set initial values for member variables.
+		'field-init-agent-delegate' can be used to set initial values for member variables
+		without touching the source code of the target class. This is useful for testing
+		purpouses where some specific initial values may be required instead of the default
+		values.
+		
+		For testing see profile comments. 
 	</description>
 	<licenses>
 		<license>
@@ -25,6 +30,10 @@
 			<email>hapi@hapiware.com</email>
 		</developer>
 	</developers>
+	
+	<properties>
+		<java.agent.version>2.1.1</java.agent.version>
+	</properties>
 	
 	<build>
 		<plugins>
@@ -75,18 +84,18 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources/filtered</directory>
+				<filtering>true</filtering>
+			</testResource>
+		</testResources>
 	</build>
 	
 	<dependencies>
 		<dependency>
 			<groupId>asm</groupId>
-			<artifactId>asm</artifactId>
-			<version>3.3</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>asm</groupId>
-			<artifactId>asm-commons</artifactId>
+			<artifactId>asm-all</artifactId>
 			<version>3.3</version>
 			<scope>provided</scope>
 		</dependency>
@@ -171,6 +180,65 @@
 								</goals>
 							</execution>
 						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		
+		
+		<profile>
+			<!--
+				Runs all the other tests except those where byte code manipulation is to happen.
+				For details see profile 'test-agent'.
+			-->
+			<id>test-unmanipulated</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!--
+								ManipulatedAgentTest.java must be tested separately after making
+								a package. See a profile named 'test-agent'.
+							-->
+							<excludes>
+								<exclude>**/ManipulatedAgentTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<!--
+				This profile is to be used to prove that the byte code manipulation works as
+				expected. Follow these steps:
+				
+					1. Run mvn clean install (or mvn clean package)
+					2. Run mvn test -P test-agent
+					
+				The first command builds the agent delegate to be used in the second step and
+				thus you _must not use 'clean' command in the second step_.
+			-->
+			<id>test-agent</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludes>
+								<exclude>**/UnmanipulatedAgentTest.java</exclude>
+							</excludes>
+							<includes>
+								<include>**/ManipulatedAgentTest.java</include>
+							</includes>
+							<argLine>-javaagent:${settings.localRepository}/com/hapiware/agent/agent/${java.agent.version}/agent-${java.agent.version}.jar=${project.build.directory}/test-classes/field-init-agent-config.xml</argLine>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>

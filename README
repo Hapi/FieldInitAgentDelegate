@@ -4,11 +4,31 @@ README - field-init-agent-delegate
 
 DESCRIPTION
 -----------
+'field-init-agent-delegate' can be used to set initial values for member variables
+without touching the source code of the target class. This is useful for testing
+purpouses where some specific initial values may be required instead of the default
+values.
+
+
+RUNNIG UNIT TESTS
+-----------------
+If you like to build this from the source be prepared that some of the tests cannot
+be run directly from your IDE. You can, of course, configure your IDE to run those
+tests but configurations for that is not included. Instead, all the tests can be
+run with Maven. Follow these steps:
+
+	1. Run mvn clean install (or mvn clean package)
+	2. Run mvn test -P test-agent
+	
+The first command builds the agent delegate to be used in the second step and
+thus you _must not use 'clean' command in the second step_.
 
 
 REQUIREMENTS
 ------------
 - Java 1.5 or later
+- com.hapiware.agent.Agent (see http://www.hapiware.com)
+- ASM 3.0 or newer (see http://asm.ow2.org/)
 
 
 LICENSE
