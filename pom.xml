@@ -181,6 +181,19 @@
 							</execution>
 						</executions>
 					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<!--
+								ManipulatedAgentTest.java must be tested separately after making
+								a package. See a profile named 'test-agent'.
+							-->
+							<excludes>
+								<exclude>**/ManipulatedAgentTest.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
